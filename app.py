@@ -11,24 +11,11 @@ SPREADSHEET_NAME = "Ulcer Data"
 
 @st.cache_resource
 def init_sheet():
-    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE, SCOPE)
+    # Load from Streamlit secrets
+    creds_dict = st.secrets["google_credentials"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
-    workbook = client.open(SPREADSHEET_NAME)
-    headers = [
-        "Date", "Age", "Gender", "TakeUlcerMed", "MedTime", "PainRating", "Symptoms",
-        "Duration", "SymptomChange", "AteTriggers", "SkippedMeal", "AteLate",
-        "TookNSAID", "StressLevel", "CancerDiag",
-        "FamilyHistory", "LogTimestamp"
-    ]
-    try:
-        sheet = workbook.worksheet("DailyLogs")
-    except gspread.WorksheetNotFound:
-        sheet = workbook.add_worksheet("DailyLogs", rows=100, cols=20)
-    # Ensure header row
-    first_row = sheet.row_values(1)
-    if first_row != headers:
-        sheet.insert_row(headers, 1)
-    return sheet
+    return client.open("Ulcer Data").worksheet("DailyLogs")
 
 sheet = init_sheet()
 
