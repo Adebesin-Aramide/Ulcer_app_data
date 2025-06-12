@@ -108,6 +108,13 @@ elif page == "Daily Log":
         ]
     )
 
+    #Causes of Triggers
+    triggersCauses = st.multiselect( 
+        "Possible triggers for your symptoms (select all that apply):",
+        ["Spicy foods", "Tomatoes", "Citrus fruits", "Fried foods", "Fatty foods",
+        "Dairy", "Chocolate", "Caffeinated drinks", "Carbonated drinks", "Alcohol",
+        "fermented foods", "Raw onions/garlic", "Skipped a meal", "Ate late", "Overate", "Ate under stress", "Took NSAIDs", "Stress"])
+
     # Diet & Lifestyle
     ate_triggers = st.radio("Ate spicy/oily/caffeinated/carbonated/acidic food?", ["Yes", "No"])
     skipped_meal = st.radio("Skipped any meals today?", ["Yes", "No"])
@@ -118,6 +125,7 @@ elif page == "Daily Log":
     # Cancer Check
     cancer_diag = st.radio("Gastric cancer diagnosis during monitoring?", ["Yes", "No"])
     family_history = st.radio("Family history of gastric cancer?", ["Yes", "No", "Not sure"])
+    hasUlcer = st.radio("Were you diagnosed with an ulcer caused by Helicobacter pylori infection", ["Yes", "No"])
 
     if st.button("Submit Daily Log"):
         row = [
