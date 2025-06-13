@@ -10,11 +10,13 @@ SPREADSHEET_NAME = "Ulcer Data"
 
 @st.cache_resource
 def init_sheet():
+    # Load credentials
     creds_dict = st.secrets["google_credentials"]
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
     workbook = client.open(SPREADSHEET_NAME)
 
+    # Desired headers
     headers = [
         "Date", "Age", "Gender",
         "TakeUlcerMed", "MedTime",
@@ -27,16 +29,14 @@ def init_sheet():
         "LogTimestamp"
     ]
 
+    # Get or create sheet
     try:
         sheet = workbook.worksheet("DailyLogs")
     except gspread.WorksheetNotFound:
         sheet = workbook.add_worksheet("DailyLogs", rows=200, cols=len(headers))
 
-    # Insert headers if missing or out of order
-    first_row = sheet.row_values(1)
-    if first_row != headers:
-        sheet.clear()
-        sheet.insert_row(headers, 1)
+    # Update header row explicitly (preserving existing data)
+    sheet.update('A1:{}'.format(chr(ord('A') + len(headers) - 1) + '1'), [headers])
 
     return sheet
 
@@ -62,6 +62,7 @@ This app is part of our team’s entry for the **Deep Learning Indaba Community 
   Select all meals you ate from a list of common foods.  
   Pick any trigger causes you suspect today.  
   Track stress level, NSAID use, and H. pylori diagnosis.  
+
 - **Data Storage:**  
   All entries are saved securely to a Google Sheet.  
   Your data fuels our ML backend to uncover personal triggers and flag high-risk patterns.
@@ -140,7 +141,7 @@ elif page == "Daily Log":
     # Cancer & H. pylori
     cancer_diag = st.radio("Gastric cancer diagnosis during monitoring?", ["Yes", "No"])
     family_history = st.radio("Family history of gastric cancer?", ["Yes", "No", "Not sure"])
-    h_pylori_ulcer = st.radio("Were you diagnosed with an ulcer caused by H. pylori?", ["Yes", "No"])
+    h_pylori_ulcer = st.radio("Diagnosed with ulcer caused by H. pylori?", ["Yes", "No"])
 
     if st.button("Submit Daily Log"):
         row = [
@@ -160,3 +161,4 @@ elif page == "Daily Log":
         ]
         sheet.append_row(row)
         st.success("Your daily log has been saved!")
+
