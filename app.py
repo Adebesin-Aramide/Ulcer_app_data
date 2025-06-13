@@ -162,7 +162,7 @@ elif page == "Daily Log":
         row = [
             datetime.now().strftime("%Y-%m-%d"),
             age, gender,
-            took_ulcer_med, med_time.strftime("%H:%M"),
+            took_ulcer_med, med_time_str,
             pain_rating,
             ";".join(symptoms) or "None",
             symptom_duration, symptom_change,
