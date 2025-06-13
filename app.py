@@ -6,7 +6,6 @@ from datetime import datetime
 # --- Google Sheets setup ---
 SCOPE = ["https://spreadsheets.google.com/feeds",
          "https://www.googleapis.com/auth/drive"]
-CREDS_FILE = "service_account.json"
 SPREADSHEET_NAME = "Ulcer Data"
 
 @st.cache_resource
@@ -15,19 +14,30 @@ def init_sheet():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
     workbook = client.open(SPREADSHEET_NAME)
+
     headers = [
-        "Date", "Age", "Gender", "TakeUlcerMed", "MedTime",
+        "Date", "Age", "Gender",
+        "TakeUlcerMed", "MedTime",
         "PainRating", "Symptoms", "Duration", "SymptomChange",
-        "Meals", "AteTriggers", "SkippedMeal", "AteLate",
-        "TookNSAID", "StressLevel", "CancerDiag", "FamilyHistory", "LogTimestamp"
+        "Meals", "TriggerCauses",
+        "AteTriggers", "SkippedMeal", "AteLate", "TookNSAID",
+        "StressLevel",
+        "CancerDiag", "FamilyHistory",
+        "HpyloriUlcer",
+        "LogTimestamp"
     ]
+
     try:
         sheet = workbook.worksheet("DailyLogs")
     except gspread.WorksheetNotFound:
-        sheet = workbook.add_worksheet("DailyLogs", rows=100, cols=20)
+        sheet = workbook.add_worksheet("DailyLogs", rows=200, cols=len(headers))
+
+    # Insert headers if missing or out of order
     first_row = sheet.row_values(1)
     if first_row != headers:
+        sheet.clear()
         sheet.insert_row(headers, 1)
+
     return sheet
 
 sheet = init_sheet()
@@ -50,9 +60,8 @@ This app is part of our team’s entry for the **Deep Learning Indaba Community 
   Enter your age and gender.  
   Record ulcer medication, pain ratings, and symptoms.  
   Select all meals you ate from a list of common foods.  
-  Track stress level and NSAID use.  
-  Note any gastric cancer diagnoses or family history.
-
+  Pick any trigger causes you suspect today.  
+  Track stress level, NSAID use, and H. pylori diagnosis.  
 - **Data Storage:**  
   All entries are saved securely to a Google Sheet.  
   Your data fuels our ML backend to uncover personal triggers and flag high-risk patterns.
@@ -62,7 +71,7 @@ This app is part of our team’s entry for the **Deep Learning Indaba Community 
 Be accurate: Honest entries help our AI learn effectively.  
 Select **Daily Log** from the sidebar to start logging your day!
 
-**Contact Us:** dsnoau@datascientistsfoundation.org
+**Contact Us:** [✉️ adebesinaramide@gmail.com](mailto:adebesinaramide@gmail.com)
 """)
 
 # --- Daily Log page ---
@@ -81,9 +90,10 @@ elif page == "Daily Log":
     pain_rating = st.slider("Pain rating (1–5)", 1, 5, 1)
     symptoms = st.multiselect(
         "Symptoms today:",
-        ["Bloating", "Vomiting", "Acid reflux", "Heartburn", "Loss of appetite",
-         "Indigestion", "Blood in vomit/stool", "Nausea", "Unintended weight loss",
-         "Feeling full quickly", "Persistent fatigue", "Dark or tarry stools", "None"]
+        ["Bloating", "Vomiting", "Acid reflux", "Heartburn",
+         "Loss of appetite", "Indigestion", "Blood in vomit/stool",
+         "Nausea", "Unintended weight loss", "Feeling full quickly",
+         "Persistent fatigue", "Dark or tarry stools", "None"]
     )
     symptom_duration = st.radio("Duration of discomfort:", ["<30 mins", "30 mins–2 hrs", ">2 hrs"])
     symptom_change = st.slider("Compared to yesterday (1 good–10 bad)", 1, 10, 5)
@@ -108,12 +118,17 @@ elif page == "Daily Log":
         ]
     )
 
-    #Causes of Triggers
-    triggersCauses = st.multiselect( 
-        "Possible triggers for your symptoms (select all that apply):",
-        ["Spicy foods", "Tomatoes", "Citrus fruits", "Fried foods", "Fatty foods",
-        "Dairy", "Chocolate", "Caffeinated drinks", "Carbonated drinks", "Alcohol",
-        "fermented foods", "Raw onions/garlic", "Skipped a meal", "Ate late", "Overate", "Ate under stress", "Took NSAIDs", "Stress"])
+    # Trigger causes
+    trigger_causes = st.multiselect(
+        "Possible triggers for your symptoms:",
+        [
+            "Spicy foods", "Tomatoes", "Citrus fruits", "Fried foods",
+            "Fatty foods", "Dairy", "Chocolate", "Caffeinated drinks",
+            "Carbonated drinks", "Alcohol", "Fermented foods",
+            "Raw onions/garlic", "Skipped a meal", "Ate late",
+            "Overate", "Ate under stress", "Took NSAIDs", "Stress"
+        ]
+    )
 
     # Diet & Lifestyle
     ate_triggers = st.radio("Ate spicy/oily/caffeinated/carbonated/acidic food?", ["Yes", "No"])
@@ -122,18 +137,25 @@ elif page == "Daily Log":
     took_nsaid = st.radio("Took NSAIDs today? (like Ibuprofen)", ["Yes", "No"])
     stress = st.slider("Stress level (1–5)", 1, 5, 3)
 
-    # Cancer Check
+    # Cancer & H. pylori
     cancer_diag = st.radio("Gastric cancer diagnosis during monitoring?", ["Yes", "No"])
     family_history = st.radio("Family history of gastric cancer?", ["Yes", "No", "Not sure"])
-    hasUlcer = st.radio("Were you diagnosed with an ulcer caused by Helicobacter pylori infection", ["Yes", "No"])
+    h_pylori_ulcer = st.radio("Were you diagnosed with an ulcer caused by H. pylori?", ["Yes", "No"])
 
     if st.button("Submit Daily Log"):
         row = [
-            datetime.now().strftime("%Y-%m-%d"), age, gender,
-            took_ulcer_med, med_time.strftime("%H:%M"), pain_rating,
-            ";".join(symptoms) or "None", symptom_duration, symptom_change,
-            ";".join(meals) or "None", ate_triggers, skipped_meal, ate_late,
-            took_nsaid, stress, cancer_diag, family_history,
+            datetime.now().strftime("%Y-%m-%d"),
+            age, gender,
+            took_ulcer_med, med_time.strftime("%H:%M"),
+            pain_rating,
+            ";".join(symptoms) or "None",
+            symptom_duration, symptom_change,
+            ";".join(meals) or "None",
+            ";".join(trigger_causes) or "None",
+            ate_triggers, skipped_meal, ate_late,
+            took_nsaid, stress,
+            cancer_diag, family_history,
+            h_pylori_ulcer,
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ]
         sheet.append_row(row)
